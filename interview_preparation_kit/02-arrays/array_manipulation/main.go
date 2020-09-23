@@ -9,36 +9,106 @@ import (
 	"strings"
 )
 
-var maxValue int64
+type query struct {
+	start int32
+	end   int32
+	value int64
+}
+
+func (q *query) update(start, end int32, value int64, sumFlag bool) {
+	q.start = start
+	q.end = end
+
+	if sumFlag {
+		q.value += value
+	} else {
+		q.value = value
+	}
+}
 
 // Complete the arrayManipulation function below.
 func arrayManipulation(n int32, queries [][]int32) int64 {
+	var maxValue query
+
 	array := make([]int64, n)
 
-	for _, query := range queries {
-		applyQuery(query, &array)
-	}
+	// processing the first query
+	start, end, value := queryConverter(queries[0])
+	maxValue.update(start, end, value, false)
+	queries = queries[1:]
+	applyQuery(start, end, value, &array)
+	fmt.Println("\n", array)
 
-	return maxValue
-}
+	for i := range queries {
+		start, end, value := queryConverter(queries[i])
+		applyQuery(start, end, value, &array)
+		fmt.Println("\n", array)
 
-func applyQuery(query []int32, array *[]int64) {
-	start, end, acc := queryConverter(query)
-	for start < end {
-		(*array)[start] += acc
-		if (*array)[start] > maxValue {
-			maxValue = (*array)[start]
+		// out of maxValue range
+		if end < maxValue.start || start > maxValue.end {
+			fmt.Print("1", maxValue, start, end, value)
+			if value > maxValue.value {
+				maxValue.update(start, end, value, false)
+			}
+			fmt.Println(" -> ", maxValue)
+			continue
 		}
-		start++
+
+		// in range
+		if start >= maxValue.start && end <= maxValue.end {
+			fmt.Print("2", maxValue, start, end, value)
+			maxValue.update(start, end, value, true)
+			fmt.Println(" -> ", maxValue)
+			continue
+		}
+
+		// out of range
+		if start < maxValue.start && end <= maxValue.end {
+			fmt.Print("3", maxValue, start, end, value)
+			maxValue.update(maxValue.start, end, value, true)
+			fmt.Println(" -> ", maxValue)
+			continue
+		}
+
+		if start >= maxValue.start && end > maxValue.end {
+			fmt.Print("4", maxValue, start, end, value)
+			maxValue.update(start, maxValue.end, value, true)
+			fmt.Println(" -> ", maxValue)
+			continue
+		}
+
+		if start <= maxValue.start && end >= maxValue.end {
+			fmt.Print("5", maxValue, start, end, value)
+			maxValue.update(maxValue.start, maxValue.end, value, true)
+			fmt.Println(" -> ", maxValue)
+			continue
+		}
 	}
+
+	fmt.Println("\n\n", maxValue, max)
+
+	fmt.Println(array)
+
+	return maxValue.value
 }
 
 func queryConverter(query []int32) (int32, int32, int64) {
-	start := query[0] - 1
+	start := query[0]
 	end := query[1]
-	var acc int64 = int64(query[2])
+	var value int64 = int64(query[2])
 
-	return start, end, acc
+	return start, end, value
+}
+
+var max int64
+
+func applyQuery(start, end int32, value int64, array *[]int64) {
+	for i := start; i < end; i++ {
+		(*array)[i] += value
+		if (*array)[i] > max {
+			max = (*array)[i]
+		}
+	}
 }
 
 func main() {
